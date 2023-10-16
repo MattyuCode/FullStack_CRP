@@ -1,0 +1,24 @@
+.iconos{
+    font-size:40px;
+    cursor: pointer;
+    text-align: center;
+}
+
+
+.estilosoo{
+    border-color: #201d1d !important;
+    border: 0;
+    border-left: 35px;
+}
+
+.iconTransito{
+    font-size: 30px;
+}
+
+.tarjetas{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: initial;
+    padding: 10px;
+}
