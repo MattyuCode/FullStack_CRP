@@ -14,7 +14,7 @@ namespace Api_Logistica.Data.Repositorios.IRepositorios
         //Task<TurnoModel> GetTurnosById(string NO_CIA, string TURNO);
         Task<IEnumerable<DetallesTurno>> GetTurnosById(string NO_CIA, string TURNO);
 
-        Task CreateEncabezadoTurno(CrearTurnoModel addTurno);
+        Task<string> CreateEncabezadoTurno(CrearTurnoModel addTurno);
         Task CreateDetalleTurno(crearDtallesTurno newTurno);
         Task DeleteTurno(int idTurnos);
         Task UpdateTurno(TurnoModel updateTurno);
@@ -28,7 +28,7 @@ namespace Api_Logistica.Data.Repositorios.IRepositorios
         Task<IEnumerable<pilotoModel>> GetPiloto(string NO_CIA, string TRANSPORTISTA);
         Task<IEnumerable<tipoModel>> GetTipo(string NO_CIA);
         Task<IEnumerable<DETALLES_TURNO_MODEL>> GETDETAILSTURNO(string TURNO_GENERADO);
-        Task<string> GetNumTurno(string NO_CIA);
+        //Task<string> GetNumTurno(string NO_CIA);
 
 
         //------------------------------OTROS DE PARTE DE DETALLES--------------------------------

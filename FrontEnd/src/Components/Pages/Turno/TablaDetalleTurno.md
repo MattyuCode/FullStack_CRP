@@ -1,3 +1,7 @@
+```js
+
+
+
 import { FaTimes } from "react-icons/fa";
 import { BiSolidSave } from "react-icons/bi";
 import { useContext, useEffect, useState } from "react";
@@ -12,7 +16,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 const TablaDetalleTurno = () => {
   const { noCia, token } = TokenANDnoCia();
-  // const usenavigate = useNavigate();
+  const usenavigate = useNavigate();
   const API_Services = import.meta.env.VITE_APP_MY_ENV_API;
   const { Column, HeaderCell, Cell } = Table;
   const [sortColumn, setSortColumn] = useState();
@@ -20,6 +24,7 @@ const TablaDetalleTurno = () => {
   const [loading, setLoading] = useState(false);
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
+  const [detallesTurno, setDetallesTurno] = useState([]);
   const [open, setOpen] = useState(false);
   const [size, setSize] = useState(false);
   const handleOpen = (value) => {
@@ -30,16 +35,10 @@ const TablaDetalleTurno = () => {
   const modalSize = ["xs", "sm", "md", "lg", "full"].includes(size)
     ? size
     : "lg";
-  const [nextId, setNextId] = useState(1);
-  const [selectedCliente, setSelectedCliente] = useState([]);
-  const [selectedClienteData, setSelectedClienteData] = useState("");
-  const [selectedGCliente, setSelectedGCliente] = useState([]);
-  const [selectedGrupoCliente, setSelectedGrupoCliente] = useState("");
-  const { detalleObjet, setDetalleObjet } = useContext(UseTurnoContext);
 
   const getData = () => {
     if (sortColumn && sortType) {
-      return detalleObjet.sort((a, b) => {
+      return detallesTurno.sort((a, b) => {
         let x = a[sortColumn];
         let y = b[sortColumn];
         if (typeof x === "string") {
@@ -55,7 +54,7 @@ const TablaDetalleTurno = () => {
         }
       });
     }
-    return detalleObjet;
+    return detallesTurno;
   };
 
   const handleSortColumn = (sortColumn, sortType) => {
@@ -77,6 +76,16 @@ const TablaDetalleTurno = () => {
     setPage(1);
     setLimit(dataKey);
   };
+
+console.log(detallesTurno)
+
+  const [selectedCliente, setSelectedCliente] = useState([]);
+  const [selectedClienteData, setSelectedClienteData] = useState("");
+  const [selectedGCliente, setSelectedGCliente] = useState([]);
+  const [selectedGrupoCliente, setSelectedGrupoCliente] = useState("");
+
+  const [numTurno, setNumTurno] = useState("");
+  const { setNumTurnoContext } = useContext(UseTurnoContext);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,13 +113,24 @@ const TablaDetalleTurno = () => {
         );
         const dataGrupoCliente = await responseGrupoCliente.json();
         setSelectedGCliente(dataGrupoCliente);
+
+        /*  const response = await fetch(
+          `${API_Services}/Turno/GETDETAILSTURNO/${numTurno}`,
+          {
+            // const response = await fetch(`${API_Services}/Turno/GETDETAILSTURNO`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await response.json();
+        console.log(data);
+        setDetallesTurno(data);*/
       } catch (error) {
         // console.log(error);
       }
     };
 
     fetchData();
-  }, [API_Services, token, noCia, selectedClienteData.value]);
+  }, [API_Services, token, noCia, selectedClienteData.value, numTurno]);
 
   const optsCliente = selectedCliente.map((item) => ({
     value: item.GRUPO,
@@ -131,27 +151,87 @@ const TablaDetalleTurno = () => {
     setSelectedGrupoCliente(item);
   };
 
-  //NOTE: OBJETO PARA EL DETALLE
-  const guardarDetalleTurno = () => {
-    const objDetalles = {
-      id: nextId,
-      NO_CIA: noCia,
-      NO_CLIENTE: selectedGrupoCliente.value,
-      NOMBRE: selectedGrupoCliente.label,
-      GRUPO: selectedClienteData.value,
-      ESTADO: "P",
-    };
-    setNextId(nextId + 1);
-    // setArrayDetalle([...arrayDetalle, objDetalles]);
-    setDetalleObjet([...detalleObjet, objDetalles]);
+  //BUG: PARA GENERAR EL NUMETO TURNO
+  const getNumTurno = async () => {
+    try {
+      const responseNumTurno = await fetch(
+        `${API_Services}/Turno/GetNumTurno/${noCia}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!responseNumTurno.ok) {
+        console.error("Algo salió mal al obtener el número de turno");
+        return null;
+      } else {
+        const dataNumTurno = await responseNumTurno.json();
+        console.log(dataNumTurno);
+        setNumTurno(dataNumTurno);
+        setNumTurnoContext(dataNumTurno);
+        return dataNumTurno;
+      }
+    } catch (error) {
+      console.error(
+        "Error en la solicitud para obtener el número de turno:",
+        error
+      );
+      return null;
+    }
+  };
 
-    toast.success("Detalle agregado exitosamente", {
-      theme: "colored",
-    });
-    handleClose();
-    setSelectedClienteData("");
-    setSelectedGrupoCliente("");
-    // return objDetalles;
+  const saveDetalleTurno = async () => {
+    try {
+      debugger;
+
+      const dataNumTurno = await getNumTurno();
+      if (!dataNumTurno) {
+        console.error("No se pudo obtener el número de turno");
+        return;
+      }
+
+      const numeroTurnoGenerado = dataNumTurno.toString();
+
+      const resquestOptions = {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          NO_CIA: noCia,
+          TURNO: numeroTurnoGenerado,
+          NO_CLIENTE: selectedGrupoCliente.value,
+          GRUPO: selectedClienteData.value,
+          ESTADO: "P",
+        }),
+      };
+      const response = await fetch(
+        `${API_Services}/Turno/CreateDetalleTurno`,
+        resquestOptions
+      );
+      if (!response.ok) {
+        console.error("Ocurio un error al guardar");
+      } else {
+        const data = await response.json();
+        console.log(data);
+        toast.success("DetalleTurno guardado exitosamente", {
+          theme: "colored",
+        });
+
+        const responseDetallesTurno = await fetch(
+          `${API_Services}/Turno/GETDETAILSTURNO/${numeroTurnoGenerado}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const detallesTurnoData = await responseDetallesTurno.json();
+        console.log(detallesTurnoData);
+        setDetallesTurno(detallesTurnoData);
+
+        handleClose();
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
   };
 
   return (
@@ -302,7 +382,7 @@ const TablaDetalleTurno = () => {
             <Button
               color="green"
               appearance="primary"
-              onClick={guardarDetalleTurno}
+              onClick={saveDetalleTurno}
             >
               <BiSolidSave />
               &nbsp; Guardar
@@ -319,3 +399,4 @@ const TablaDetalleTurno = () => {
 };
 
 export default TablaDetalleTurno;
+```

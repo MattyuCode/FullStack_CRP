@@ -39,7 +39,7 @@ namespace Api_Logistica.Models
     {
         public string NO_CIA { get; set; }
         public string NO_SEDE { get; set; }
-        public string TURNO { get; set; }
+        //public string TURNO { get; set; }
         public string NUM_PLACA { get; set; }
         public string PILOTO { get; set; }
         public string NOMBRE_PILOTO { get; set; }

@@ -49,6 +49,7 @@ namespace Api_Logistica.Data.Repositorios
                 }
             }
         }
+        string numeroDeTurno = "";
 
         //METODO PARA OBTENER EL NÚMERO DE TURNO--- Agregado recientemente en la interface
         public async Task<string> GetNumTurno(string NO_CIA)
@@ -63,20 +64,20 @@ namespace Api_Logistica.Data.Repositorios
             }
         }
 
-        public async Task CreateEncabezadoTurno(CrearTurnoModel addTurno)
+        public async Task<string> CreateEncabezadoTurno(CrearTurnoModel addTurno)
         {
 
             using (var cnn = _oracleDBConnection.GetOpenConnection())
             {
                 try
                 {
-                    //var numeroDeTurno = await GetNumTurno(addTurno.NO_CIA);
+                      numeroDeTurno = await GetNumTurno(addTurno.NO_CIA);
 
                     var obj = new
                     {
                         pNO_CIA = addTurno.NO_CIA,
                         pNO_SEDE = addTurno.NO_SEDE,
-                        pTURNO = addTurno.TURNO,
+                        pTURNO = numeroDeTurno,
                         pNUM_PLACA = addTurno.NUM_PLACA,
                         pPILOTO = addTurno.PILOTO,
                         pNOMBRE_PILOTO = addTurno.NOMBRE_PILOTO,
@@ -92,6 +93,7 @@ namespace Api_Logistica.Data.Repositorios
                     };
                     await cnn.ExecuteAsync("SP_InsertarTurno", obj, commandType: CommandType.StoredProcedure);
 
+                    return numeroDeTurno;
                 }
                 catch (Exception e)
                 {

@@ -65,6 +65,23 @@ namespace Api_Logistica.Controllers
 
         //METODO PARA INSERTAR TURNOS
         [HttpPost("crearTurno")]
+        public async Task<string> CrearTurno([FromBody] CrearTurnoModel newTurno)
+        {
+            try
+            {
+                var data = await _service.CreateEncabezadoTurno(newTurno);
+
+                //return Ok(new { Message = "Inserción exitosa", newTurno });
+                return data;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al obtener el número de turno.", ex);
+            }
+        }
+
+
+        /*  [HttpPost("crearTurno")]
         public async Task<IActionResult> CrearTurno([FromBody] CrearTurnoModel newTurno)
         {
             try
@@ -78,7 +95,7 @@ namespace Api_Logistica.Controllers
             {
                 return StatusCode(500, new { Message = "Error interno del servidor", ex });
             }
-        }
+        }*/
 
 
 
@@ -232,13 +249,13 @@ namespace Api_Logistica.Controllers
         }
 
 
-        [Route("GETDETAILSTURNO")]
+        [Route("GETDETAILSTURNO/{TURNO_GENERADO}")]
         [HttpGet]
-        public async Task<IActionResult> GETDETAILSTURNO()
+        public async Task<IActionResult> GETDETAILSTURNO(string TURNO_GENERADO)
         {
             try
             {
-                var data = await _service.GETDETAILSTURNO();
+                var data = await _service.GETDETAILSTURNO(TURNO_GENERADO);
                 if (data == null)
                 {
                     return NotFound(new { msg = "Datos incorrectos o no esta registrado en la base de datos" });
@@ -311,7 +328,7 @@ namespace Api_Logistica.Controllers
                 return StatusCode(500, new { Message = "Error interno del servidor", ex });
             }
         }
-
+/*
         [Route("GetNumTurno/{NO_CIA}")]
         [HttpGet]
         public async Task<string> GetNumTurno(string NO_CIA)
@@ -329,7 +346,7 @@ namespace Api_Logistica.Controllers
             {
                 throw new Exception("Error al obtener el número de turno.", ex);
             }
-        }
+        }*/
         #endregion
 
         [Route("ValidarTurnoUsado/{NO_CIA}/{TURNO}")]

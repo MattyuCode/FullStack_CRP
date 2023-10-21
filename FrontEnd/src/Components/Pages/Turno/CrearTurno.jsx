@@ -9,6 +9,8 @@ import { UseTurnoContext } from "../../Context/UseNumTurno";
 import Swal from "sweetalert2";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { jsPDF } from "jspdf";
+import imageURL from "../../../assets/corpa.png";
 
 export const CrearTurno = () => {
   const { noCia, token } = TokenANDnoCia();
@@ -20,7 +22,6 @@ export const CrearTurno = () => {
   const [vehiculo, setVehiculo] = useState([]);
   const [pilotodata, setPilotodata] = useState([]);
   const [tipoData, setTipoData] = useState([]);
-
   const [selectedSede, setSelectedSede] = useState("");
   const [selectedCompania, setSelectedCompania] = useState({
     value: "10",
@@ -37,7 +38,9 @@ export const CrearTurno = () => {
     licencia: "",
   });
   const [internoCheck, setInternoCheck] = useState(true);
-  const { numTurnoContext } = useContext(UseTurnoContext);
+  const [nextId, setNextId] = useState(1);
+  const { detalleObjet, setDetalleObjet } = useContext(UseTurnoContext);
+ 
 
   useEffect(() => {
     const API_s = async () => {
@@ -153,7 +156,6 @@ export const CrearTurno = () => {
 
   const validateTurnoOrigen = async (e) => {
     e.preventDefault();
-
     if (selectedTipoTurno === "E") {
       try {
         const response1 = await fetch(
@@ -161,11 +163,11 @@ export const CrearTurno = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data1 = await response1.json();
-
         if (data1 === true) {
-          toast.info(`El número turno ${form.turnoOrigen} ya se esta usando`, {
-            theme: "colored",
-          });
+          toast.info(
+            `El número turno origen ${form.turnoOrigen} ya se esta usando`,
+            { theme: "colored" }
+          );
         } else {
           const response2 = await fetch(
             `${API_Services}/Turno/TurnoExiste/${noCia}/${form.turnoOrigen}`,
@@ -190,7 +192,8 @@ export const CrearTurno = () => {
   };
 
   const GuardarTurno = async () => {
-    const numeroTurnoGenerado = numTurnoContext.toString();
+    // debugger;
+    const ObjEncabezado = objectoEncabezado();
     const resquestOptions = {
       method: "POST",
       headers: {
@@ -198,39 +201,100 @@ export const CrearTurno = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        NO_CIA: noCia,
-        NO_SEDE: selectedSede.value,
-        TURNO: numeroTurnoGenerado,
-        NUM_PLACA: internoCheck ? selectedVehiculo.label : selectedVehiculo,
-        PILOTO: internoCheck ? selectedPiloto.value : "",
-        NOMBRE_PILOTO: internoCheck ? selectedPiloto.label : selectedPiloto,
-        TIPO_TURNO: selectedTipoTurno,
-        TURNO_ORIGEN: selectedTipoTurno === "D" ? "" : form.turnoOrigen,
-        INTERNO: internoCheck ? "S" : "N",
-        TRANSPORTISTA: internoCheck ? selectedTransportistas.value : "",
-        VEHICULO: internoCheck ? selectedVehiculo.value : "",
-        TIPO_VEHICULO: selectedTipo.value,
-        MARCA_VEHICULO: internoCheck ? marcaVehiculo : "",
-        LICENCIA: form.licencia,
-        USUARIO_CREA: localStorage.getItem("USERS"),
-      }),
+      body: JSON.stringify(ObjEncabezado),
     };
     try {
       const response = await fetch(
         `${API_Services}/Turno/crearTurno`,
         resquestOptions
       );
-      const data = await response.json();
-      console.log(data);
-      Swal.fire({
-        icon: "success",
-        title: "Turno guardado",
-        text: "Turno registrado correctamente",
-      });
+      if (!response.ok) {
+        console.error("Ocurio un error al guardar");
+      } else {
+        const data = await response.json();
+        localStorage.setItem("turno_new", data);
+ 
+        await saveDetalleTurno(data);
+        Swal.fire({
+          icon: "success",
+          title: "Turno guardado",
+          text: "Turno registrado correctamente",
+        }).then(async () => {
+          setSelectedSede("");
+          setSelectedTipoTurno("");
+          setForm({
+            turnoOrigen: "",
+            licencia: "",
+          });
+          setSelectedTransportistas("");
+          setSelectedVehiculo("");
+          setSelectedPiloto("");
+          setSelectedTipo("");
+          setMarcaVehiculo("");
+          //BUG: RESETEANDO LA TABLA
+          setDetalleObjet([]);
+          generatePDF();
+
+          setTimeout(() => {
+            localStorage.removeItem("turno_new");
+          }, 1000);
+        });
+      }
     } catch (error) {
       console.error(error.message);
     }
+  };
+
+  const saveDetalleTurno = async (numeroTurnoGenerado) => {
+    try {
+      const detalleObjetConTurno = detalleObjet.map((obj) => ({
+        ...obj,
+        TURNO: numeroTurnoGenerado,
+      }));
+      const resquestOptions = {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(detalleObjetConTurno[0]),
+      };
+      const response = await fetch(
+        `${API_Services}/Turno/CreateDetalleTurno`,
+        resquestOptions
+      );
+      if (!response.ok) {
+        console.error("Ocurio un error al guardar");
+      } else {
+        const data = await response.json();
+        // console.log(data);
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  const objectoEncabezado = () => {
+    const ObjEncabezado = {
+      id: nextId,
+      NO_CIA: noCia,
+      NO_SEDE: selectedSede.value,
+      NUM_PLACA: internoCheck ? selectedVehiculo.label : selectedVehiculo,
+      PILOTO: internoCheck ? selectedPiloto.value : "",
+      NOMBRE_PILOTO: internoCheck ? selectedPiloto.label : selectedPiloto,
+      TIPO_TURNO: selectedTipoTurno,
+      TURNO_ORIGEN: selectedTipoTurno === "D" ? "" : form.turnoOrigen,
+      INTERNO: internoCheck ? "S" : "N",
+      TRANSPORTISTA: internoCheck ? selectedTransportistas.value : "",
+      VEHICULO: internoCheck ? selectedVehiculo.value : "",
+      TIPO_VEHICULO: selectedTipo.value,
+      MARCA_VEHICULO: internoCheck ? marcaVehiculo : "",
+      LICENCIA: form.licencia,
+      USUARIO_CREA: localStorage.getItem("USERS"),
+    };
+    setNextId(nextId + 1);
+    return ObjEncabezado;
   };
 
   const optsCompany = companias.map((company) => ({
@@ -300,6 +364,60 @@ export const CrearTurno = () => {
     setMarcaVehiculo("");
     setSelectedPiloto("");
     setInternoCheck(event.target.checked);
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF({
+      orientation: "l",
+      unit: "mm",
+      format: "A5",
+      putOnlyUsedFonts: true,
+      floatPrecision: 10,
+    });
+
+    doc.setDrawColor(0);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, doc.internal.pageSize.width, 20, "F");
+    doc.addImage(imageURL, "PNG", 10, 5, 50, 20);
+
+    doc.setFontSize(15);
+
+    const title = "Boleta de asignación de turno";
+    const turno = `Turno : ${localStorage.getItem("turno_new")}`;
+ 
+    const titleX = 10;
+    const titleY = 35;
+
+    const turnoX = titleX + doc.getTextWidth(title) + 50;
+    const turnoY = titleY;
+
+    doc.text(title, titleX, titleY);
+    doc.text(turno, turnoX, turnoY);
+    doc.text(
+      "_____________________________________________________________",
+      titleX,
+      37
+    );
+
+    doc.setFontSize(12);
+    doc.text("Fecha Hora: 20/09/2023, 10:19:09 AM", 10, 50);
+    doc.text(`Placa Vehiculo: ${selectedVehiculo.label}`, 10, 57);
+    doc.text(`Nombre Piloto: ${selectedPiloto.label}`, 10, 64);
+    doc.text(`Tranportista: ${selectedTransportistas.value}`, 10, 71);
+    // doc.text(`Tipo Turno: ${selectedTipoTurno == 'D' ? 'DESPACHO': ''}`, 10, 78);
+    if (selectedTipoTurno === "D") {
+      doc.text(`Tipo Turno: DESPACHO`, 10, 78);
+    } else if (selectedTipoTurno === "E") {
+      doc.text(`Tipo Turno: DESCARGA`, 10, 78);
+    } else if (selectedTipoTurno === "T") {
+      doc.text(`Tipo Turno: TRASLADO`, 10, 78);
+    }
+
+    doc.text(`Grupo: 01 `, 10, 100);
+    doc.text(`Cliente: 000049`, 10, 110);
+    doc.text(`Nombre: FFAC, SOCIEDAD ANONIMA`, 10, 120);
+
+    doc.save("Boleta del nuevo Turno.pdf");
   };
 
   return (
@@ -495,7 +613,7 @@ export const CrearTurno = () => {
                 </div>
               </div>
 
-{/* detalles tuno */}
+              {/* detalles tuno */}
               <TablaDetalleTurno />
 
               <div className="row text-center">

@@ -3,10 +3,10 @@ import { createContext, useState } from "react";
 export const UseTurnoContext = createContext();
 
 export function UseNumTurno({ children }) {
-  const [numTurnoContext, setNumTurnoContext] = useState(null);
+  const [detalleObjet, setDetalleObjet] = useState([]);
 
   return (
-    <UseTurnoContext.Provider value={{ numTurnoContext, setNumTurnoContext }}>
+    <UseTurnoContext.Provider value={{ detalleObjet, setDetalleObjet }}>
       {children}
     </UseTurnoContext.Provider>
   );
